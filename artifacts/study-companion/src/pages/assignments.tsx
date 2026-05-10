@@ -2,73 +2,66 @@ import { useState } from "react";
 import { AppLayout } from "@/components/layout";
 import { useListAssignments, useUpdateAssignment, useDeleteAssignment } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getListAssignmentsQueryKey, getGetAssignmentSummaryQueryKey, getGetAssignmentsDueSoonQueryKey } from "@workspace/api-client-react";
+import {
+  getListAssignmentsQueryKey,
+  getGetAssignmentSummaryQueryKey,
+  getGetAssignmentsDueSoonQueryKey,
+} from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Plus, Trash2, CheckCircle2, Circle } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function Assignments() {
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPriority, setFilterPriority] = useState("all");
 
   const { data: assignments } = useListAssignments();
   const updateAssignment = useUpdateAssignment();
   const deleteAssignment = useDeleteAssignment();
   const queryClient = useQueryClient();
 
-  const toggleComplete = (id: number, currentStatus: boolean) => {
-    updateAssignment.mutate({
-      id,
-      data: { completed: !currentStatus }
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListAssignmentsQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetAssignmentSummaryQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetAssignmentsDueSoonQueryKey() });
-      }
-    });
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: getListAssignmentsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetAssignmentSummaryQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetAssignmentsDueSoonQueryKey() });
+  };
+
+  const toggleComplete = (id: number, current: boolean) => {
+    updateAssignment.mutate({ id, data: { completed: !current } }, { onSuccess: invalidate });
   };
 
   const handleDelete = (id: number) => {
-    deleteAssignment.mutate({ id }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListAssignmentsQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetAssignmentSummaryQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetAssignmentsDueSoonQueryKey() });
-      }
-    });
+    deleteAssignment.mutate({ id }, { onSuccess: invalidate });
   };
 
-  const filteredAssignments = assignments?.filter(a => {
-    if (filterStatus === "completed" && !a.completed) return false;
-    if (filterStatus === "pending" && a.completed) return false;
-    if (filterPriority !== "all" && a.priority !== filterPriority) return false;
-    return true;
-  }).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()) || [];
+  const filtered = assignments
+    ?.filter(a => {
+      if (filterStatus === "completed" && !a.completed) return false;
+      if (filterStatus === "pending" && a.completed) return false;
+      if (filterPriority !== "all" && a.priority !== filterPriority) return false;
+      return true;
+    })
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()) || [];
 
   return (
     <AppLayout>
-      <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-serif font-bold text-foreground">Assignments</h1>
-            <p className="text-muted-foreground mt-1">Track and manage your coursework.</p>
-          </div>
+          <h1 className="font-script text-5xl text-foreground">Assignments</h1>
           <Link href="/assignments/new">
-            <Button className="gap-2 shrink-0">
+            <Button className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-sm" data-testid="button-new-assignment">
               <Plus className="w-4 h-4" />
               New Assignment
             </Button>
           </Link>
         </div>
 
-        <div className="flex flex-wrap gap-4 bg-card p-4 rounded-xl border shadow-sm">
-          <div className="w-[180px]">
+        <div className="flex flex-wrap gap-3 bg-white rounded-2xl border border-border/50 p-4 shadow-sm">
+          <div className="w-44">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger>
+              <SelectTrigger className="rounded-xl border-border bg-background" data-testid="select-status">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -78,83 +71,72 @@ export function Assignments() {
               </SelectContent>
             </Select>
           </div>
-          <div className="w-[180px]">
+          <div className="w-44">
             <Select value={filterPriority} onValueChange={setFilterPriority}>
-              <SelectTrigger>
+              <SelectTrigger className="rounded-xl border-border bg-background" data-testid="select-priority">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="high">High Priority</SelectItem>
-                <SelectItem value="medium">Medium Priority</SelectItem>
-                <SelectItem value="low">Low Priority</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {filteredAssignments.length === 0 ? (
-          <div className="text-center py-20 bg-card rounded-2xl border border-dashed text-muted-foreground">
-            <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-muted/50" />
-            <p className="text-lg">No assignments found.</p>
-            <p className="text-sm">You are all caught up!</p>
+        {filtered.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-dashed border-border text-center py-16 text-muted-foreground shadow-sm">
+            <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-primary/30" />
+            <p className="font-medium">No assignments found</p>
+            <p className="text-sm mt-1">You're all caught up!</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredAssignments.map((assignment) => (
-              <div 
-                key={assignment.id} 
-                className={`flex flex-col sm:flex-row sm:items-center gap-4 p-5 rounded-2xl border bg-card transition-all ${
-                  assignment.completed ? "opacity-60" : "hover:shadow-md"
+          <div className="space-y-3">
+            {filtered.map(a => (
+              <div
+                key={a.id}
+                data-testid={`assignment-row-${a.id}`}
+                className={`bg-white rounded-2xl border border-border/50 px-5 py-4 flex items-center gap-4 shadow-sm transition-all ${
+                  a.completed ? "opacity-60" : "hover:border-primary/30"
                 }`}
               >
-                <button 
-                  onClick={() => toggleComplete(assignment.id, assignment.completed)}
-                  className="shrink-0 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                <button
+                  onClick={() => toggleComplete(a.id, a.completed)}
+                  data-testid={`button-toggle-${a.id}`}
+                  className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
                 >
-                  {assignment.completed ? (
-                    <CheckCircle2 className="w-8 h-8 text-primary" />
-                  ) : (
-                    <Circle className="w-8 h-8" />
-                  )}
+                  {a.completed
+                    ? <CheckCircle2 className="w-7 h-7 text-primary" />
+                    : <Circle className="w-7 h-7" />}
                 </button>
-                
+
                 <div className="flex-1 min-w-0">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-1">
-                    <h3 className={`font-bold text-lg leading-tight truncate ${assignment.completed ? "line-through text-muted-foreground" : ""}`}>
-                      {assignment.title}
-                    </h3>
-                    <div className="flex gap-2">
-                      <Badge variant="outline" className="bg-secondary">{assignment.subject}</Badge>
-                      <Badge variant="outline" className={`uppercase text-[10px] tracking-wider ${
-                        assignment.priority === "high" ? "bg-destructive/10 text-destructive border-destructive/20" :
-                        assignment.priority === "medium" ? "bg-primary/10 text-primary border-primary/20" :
-                        "bg-muted text-muted-foreground border-border"
-                      }`}>
-                        {assignment.priority}
-                      </Badge>
-                    </div>
+                  <p className={`font-semibold text-base leading-tight ${a.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                    {a.title}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <span className="text-xs text-muted-foreground">{a.subject}</span>
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <span className="text-xs text-muted-foreground">Due {format(parseISO(a.dueDate), "MMM d, yyyy")}</span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide ${
+                      a.priority === "high" ? "bg-red-100 text-red-500" :
+                      a.priority === "medium" ? "bg-primary/10 text-primary" :
+                      "bg-secondary text-muted-foreground"
+                    }`} data-testid={`badge-priority-${a.id}`}>
+                      {a.priority}
+                    </span>
                   </div>
-                  <div className="text-sm text-muted-foreground flex gap-4">
-                    <span>Due: {format(parseISO(assignment.dueDate), "MMM d, yyyy")}</span>
-                  </div>
-                  {assignment.description && (
-                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                      {assignment.description}
-                    </p>
-                  )}
                 </div>
 
-                <div className="shrink-0 flex sm:flex-col justify-end">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDelete(assignment.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                <button
+                  onClick={() => handleDelete(a.id)}
+                  data-testid={`button-delete-${a.id}`}
+                  className="shrink-0 text-muted-foreground hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             ))}
           </div>

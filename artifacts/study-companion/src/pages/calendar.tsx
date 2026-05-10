@@ -5,14 +5,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getListEventsQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  format, addMonths, subMonths, startOfMonth, endOfMonth,
+  startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, parseISO,
+} from "date-fns";
 
 export function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  
+
   const { data: events } = useListEvents();
   const deleteEvent = useDeleteEvent();
   const queryClient = useQueryClient();
@@ -25,7 +27,7 @@ export function Calendar() {
   const startDate = startOfWeek(monthStart);
   const endDate = endOfWeek(monthEnd);
 
-  const days = [];
+  const days: Date[] = [];
   let day = startDate;
   while (day <= endDate) {
     days.push(day);
@@ -45,16 +47,21 @@ export function Calendar() {
     });
   };
 
+  const typeColor: Record<string, string> = {
+    study_session: "bg-primary/20 text-primary",
+    class: "bg-blue-100 text-blue-600",
+    exam: "bg-red-100 text-red-500",
+    reminder: "bg-yellow-100 text-yellow-600",
+    other: "bg-secondary text-muted-foreground",
+  };
+
   return (
     <AppLayout>
-      <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-serif font-bold text-foreground">Calendar</h1>
-            <p className="text-muted-foreground mt-1">Plan your study sessions and track classes.</p>
-          </div>
+          <h1 className="font-script text-5xl text-foreground">Calendar</h1>
           <Link href="/events/new">
-            <Button className="gap-2 shrink-0">
+            <Button className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-sm" data-testid="button-new-event">
               <Plus className="w-4 h-4" />
               New Event
             </Button>
@@ -62,110 +69,101 @@ export function Calendar() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-card rounded-2xl border shadow-sm p-6 overflow-x-auto">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-border/50 shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">{format(currentDate, "MMMM yyyy")}</h2>
-              <div className="flex gap-2">
-                <Button variant="outline" size="icon" onClick={prevMonth}>
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="icon" onClick={nextMonth}>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
+              <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors" data-testid="button-prev-month">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <h2 className="font-script text-2xl text-foreground">{format(currentDate, "MMMM yyyy")}</h2>
+              <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors" data-testid="button-next-month">
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="min-w-[600px]">
-              <div className="grid grid-cols-7 mb-2">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => (
-                  <div key={d} className="text-center text-sm font-medium text-muted-foreground py-2">
-                    {d}
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-px bg-border rounded-xl overflow-hidden border">
-                {days.map((day, idx) => {
-                  const dayEvents = events?.filter(e => isSameDay(parseISO(e.startTime), day)) || [];
-                  const isCurrentMonth = isSameMonth(day, monthStart);
-                  const isSelected = isSameDay(day, selectedDate);
-                  
-                  return (
-                    <div 
-                      key={day.toString()} 
-                      onClick={() => setSelectedDate(day)}
-                      className={`min-h-[100px] p-2 bg-card cursor-pointer transition-colors hover:bg-secondary/50 ${
-                        !isCurrentMonth ? "opacity-50" : ""
-                      } ${isSelected ? "ring-2 ring-inset ring-primary bg-primary/5" : ""}`}
-                    >
-                      <div className={`text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full mb-1 ${
-                        isSameDay(day, new Date()) ? "bg-primary text-primary-foreground" : ""
-                      }`}>
-                        {format(day, "d")}
-                      </div>
-                      <div className="space-y-1">
-                        {dayEvents.slice(0, 3).map(e => (
-                          <div key={e.id} className="text-xs truncate px-1.5 py-0.5 rounded-md bg-secondary text-secondary-foreground border border-border/50">
-                            {format(parseISO(e.startTime), "HH:mm")} {e.title}
-                          </div>
-                        ))}
-                        {dayEvents.length > 3 && (
-                          <div className="text-xs text-muted-foreground px-1">
-                            +{dayEvents.length - 3} more
-                          </div>
-                        )}
-                      </div>
+            <div className="grid grid-cols-7 mb-2">
+              {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map(d => (
+                <div key={d} className="text-center text-xs font-semibold text-muted-foreground py-2 tracking-wider">
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 border border-border/40 rounded-2xl overflow-hidden">
+              {days.map((d) => {
+                const dayEvents = events?.filter(e => isSameDay(parseISO(e.startTime), d)) || [];
+                const isCurrentMonth = isSameMonth(d, monthStart);
+                const isSelected = isSameDay(d, selectedDate);
+                const isToday = isSameDay(d, new Date());
+
+                return (
+                  <div
+                    key={d.toString()}
+                    onClick={() => setSelectedDate(d)}
+                    data-testid={`calendar-day-${format(d, "yyyy-MM-dd")}`}
+                    className={`min-h-[80px] p-2 border-b border-r border-border/30 cursor-pointer transition-colors last:border-r-0 ${
+                      !isCurrentMonth ? "bg-background/50" : "bg-white"
+                    } ${isSelected ? "bg-primary/5 ring-2 ring-inset ring-primary/30" : "hover:bg-secondary/40"}`}
+                  >
+                    <div className={`w-6 h-6 flex items-center justify-center rounded-full text-sm mb-1 font-medium ${
+                      isToday ? "bg-primary text-white" :
+                      !isCurrentMonth ? "text-muted-foreground/50" : "text-foreground"
+                    }`}>
+                      {format(d, "d")}
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="space-y-0.5">
+                      {dayEvents.slice(0, 2).map(e => (
+                        <div key={e.id} className="text-[10px] truncate px-1 py-0.5 rounded bg-primary/15 text-primary font-medium">
+                          {e.title}
+                        </div>
+                      ))}
+                      {dayEvents.length > 2 && (
+                        <div className="text-[10px] text-muted-foreground px-1">+{dayEvents.length - 2}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-card rounded-2xl border shadow-sm p-6">
-              <h3 className="font-serif text-xl font-bold mb-4 flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5 text-primary" />
-                {format(selectedDate, "MMMM d, yyyy")}
-              </h3>
-              
-              {selectedDateEvents.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>No events scheduled.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {selectedDateEvents.map(event => (
-                    <div key={event.id} className="border rounded-xl p-4 flex flex-col gap-2 relative group hover:border-primary/30 transition-colors">
-                      <div className="flex justify-between items-start gap-2">
-                        <h4 className="font-medium text-lg leading-tight">{event.title}</h4>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(event.id);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {format(parseISO(event.startTime), "h:mm a")} - {format(parseISO(event.endTime), "h:mm a")}
-                      </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <Badge variant="secondary" className="capitalize">{event.type.replace("_", " ")}</Badge>
-                      </div>
-                      {event.description && (
-                        <p className="text-sm text-muted-foreground mt-2 bg-secondary/30 p-2 rounded-md">
-                          {event.description}
-                        </p>
-                      )}
+          <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-6">
+            <h3 className="font-script text-2xl text-foreground mb-4">
+              {format(selectedDate, "MMMM d, yyyy")}
+            </h3>
+            {selectedDateEvents.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground text-sm">
+                <p>No events scheduled.</p>
+                <Link href="/events/new">
+                  <span className="text-primary hover:underline cursor-pointer mt-2 block text-sm">Add one</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {selectedDateEvents.map(event => (
+                  <div key={event.id} className="rounded-2xl border border-border/50 p-4 group hover:border-primary/30 transition-colors bg-background" data-testid={`event-card-${event.id}`}>
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <p className="font-semibold text-foreground leading-tight">{event.title}</p>
+                      <button
+                        onClick={() => handleDelete(event.id)}
+                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-all"
+                        data-testid={`button-delete-event-${event.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {format(parseISO(event.startTime), "h:mm a")} — {format(parseISO(event.endTime), "h:mm a")}
+                    </p>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${typeColor[event.type] || typeColor.other}`}>
+                      {event.type.replace("_", " ")}
+                    </span>
+                    {event.description && (
+                      <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{event.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

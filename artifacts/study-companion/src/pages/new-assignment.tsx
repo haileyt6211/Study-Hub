@@ -1,14 +1,16 @@
 import { AppLayout } from "@/components/layout";
 import { useCreateAssignment } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getListAssignmentsQueryKey, getGetAssignmentSummaryQueryKey, getGetAssignmentsDueSoonQueryKey } from "@workspace/api-client-react";
+import {
+  getListAssignmentsQueryKey,
+  getGetAssignmentSummaryQueryKey,
+  getGetAssignmentsDueSoonQueryKey,
+} from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { z } from "zod";
@@ -64,114 +66,111 @@ export function NewAssignment() {
 
   return (
     <AppLayout>
-      <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
-        <Link href="/assignments" className="inline-flex items-center text-muted-foreground hover:text-foreground text-sm font-medium transition-colors">
-          <ArrowLeft className="w-4 h-4 mr-2" />
+      <div className="max-w-xl mx-auto space-y-6">
+        <Link href="/assignments" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors gap-1" data-testid="link-back">
+          <ArrowLeft className="w-4 h-4" />
           Back to Assignments
         </Link>
-        
-        <Card className="shadow-lg border-primary/10">
-          <CardHeader className="bg-secondary/30 rounded-t-xl border-b pb-8">
-            <CardTitle className="text-3xl font-serif">New Assignment</CardTitle>
-            <CardDescription className="text-base">Add a new task to your study planner.</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-8">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+        <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-8">
+          <h1 className="font-script text-4xl text-foreground mb-6">New Assignment</h1>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-foreground/80">Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Read Chapter 4" className="rounded-xl bg-background border-border" {...field} data-testid="input-title" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <FormField
                   control={form.control}
-                  name="title"
+                  name="subject"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Title</FormLabel>
+                      <FormLabel className="text-sm font-medium text-foreground/80">Subject</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Read Chapter 4" className="bg-background" {...field} />
+                        <Input placeholder="e.g. Biology" className="rounded-xl bg-background border-border" {...field} data-testid="input-subject" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="subject"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Subject</FormLabel>
+                <FormField
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium text-foreground/80">Priority</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <Input placeholder="e.g. Biology" className="bg-background" {...field} />
+                          <SelectTrigger className="rounded-xl bg-background border-border" data-testid="select-priority">
+                            <SelectValue placeholder="Select priority" />
+                          </SelectTrigger>
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="priority"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Priority</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="bg-background">
-                              <SelectValue placeholder="Select priority" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="low">Low Priority</SelectItem>
-                            <SelectItem value="medium">Medium Priority</SelectItem>
-                            <SelectItem value="high">High Priority</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="dueDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Due Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" className="bg-background" {...field} />
-                      </FormControl>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+              </div>
 
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Add any extra details, links, or notes..." 
-                          className="resize-none bg-background h-32" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-foreground/80">Due Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" className="rounded-xl bg-background border-border" {...field} data-testid="input-due-date" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <div className="flex justify-end pt-4">
-                  <Button type="submit" size="lg" disabled={createAssignment.isPending}>
-                    {createAssignment.isPending ? "Saving..." : "Add Assignment"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-foreground/80">Notes (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Any extra details..." className="rounded-xl bg-background border-border resize-none h-28" {...field} data-testid="input-description" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="submit"
+                  disabled={createAssignment.isPending}
+                  className="bg-primary hover:bg-primary/90 text-white rounded-xl px-8"
+                  data-testid="button-submit"
+                >
+                  {createAssignment.isPending ? "Saving..." : "Add Assignment"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
       </div>
     </AppLayout>
   );
