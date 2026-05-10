@@ -1,22 +1,26 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Study Companion API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: events
+    description: Calendar events and study sessions
+  - name: assignments
+    description: Assignments and deadlines
+  - name: notifications
+    description: Notification preferences
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +28,211 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List all calendar events
+      parameters:
+        - in: query
+          name: start
+          schema:
+            type: string
+          description: ISO date string start range
+        - in: query
+          name: end
+          schema:
+            type: string
+          description: ISO date string end range
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Create a calendar event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventInput"
+      responses:
+        "201":
+          description: Created event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /events/{id}:
+    get:
+      operationId: getEvent
+      tags: [events]
+      summary: Get a single event
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateEvent
+      tags: [events]
+      summary: Update an event
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventUpdate"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    delete:
+      operationId: deleteEvent
+      tags: [events]
+      summary: Delete an event
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /assignments:
+    get:
+      operationId: listAssignments
+      tags: [assignments]
+      summary: List all assignments
+      parameters:
+        - in: query
+          name: completed
+          schema:
+            type: boolean
+          description: Filter by completion status
+      responses:
+        "200":
+          description: List of assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Assignment"
+    post:
+      operationId: createAssignment
+      tags: [assignments]
+      summary: Create an assignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignmentInput"
+      responses:
+        "201":
+          description: Created assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+
+  /assignments/{id}:
+    patch:
+      operationId: updateAssignment
+      tags: [assignments]
+      summary: Update an assignment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignmentUpdate"
+      responses:
+        "200":
+          description: Updated assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+    delete:
+      operationId: deleteAssignment
+      tags: [assignments]
+      summary: Delete an assignment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /assignments/due-soon:
+    get:
+      operationId: getAssignmentsDueSoon
+      tags: [assignments]
+      summary: Get assignments due within the next 24 hours
+      responses:
+        "200":
+          description: Assignments due soon
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Assignment"
+
+  /assignments/summary:
+    get:
+      operationId: getAssignmentSummary
+      tags: [assignments]
+      summary: Get assignment summary counts
+      responses:
+        "200":
+          description: Summary counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +243,132 @@ components:
       required:
         - status
 
+    Event:
+      type: object
+      required: [id, title, startTime, endTime, type, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        startTime:
+          type: string
+        endTime:
+          type: string
+        type:
+          type: string
+          enum: [study_session, class, exam, reminder, other]
+        color:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    EventInput:
+      type: object
+      required: [title, startTime, endTime, type]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        type:
+          type: string
+          enum: [study_session, class, exam, reminder, other]
+        color:
+          type: string
+
+    EventUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        type:
+          type: string
+          enum: [study_session, class, exam, reminder, other]
+        color:
+          type: string
+
+    Assignment:
+      type: object
+      required: [id, title, subject, dueDate, completed, priority, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        subject:
+          type: string
+        description:
+          type: ["string", "null"]
+        dueDate:
+          type: string
+        completed:
+          type: boolean
+        priority:
+          type: string
+          enum: [low, medium, high]
+        createdAt:
+          type: string
+
+    AssignmentInput:
+      type: object
+      required: [title, subject, dueDate, priority]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        subject:
+          type: string
+        description:
+          type: string
+        dueDate:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high]
+
+    AssignmentUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        subject:
+          type: string
+        description:
+          type: string
+        dueDate:
+          type: string
+        completed:
+          type: boolean
+        priority:
+          type: string
+          enum: [low, medium, high]
+
+    AssignmentSummary:
+      type: object
+      required: [total, completed, pending, dueSoon, overdue]
+      properties:
+        total:
+          type: integer
+        completed:
+          type: integer
+        pending:
+          type: integer
+        dueSoon:
+          type: integer
+        overdue:
+          type: integer
