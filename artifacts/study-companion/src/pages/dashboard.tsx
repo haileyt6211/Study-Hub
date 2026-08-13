@@ -1,9 +1,9 @@
 import { AppLayout } from "@/components/layout";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, BellOff, CheckCircle2, Clock, BookMarked, Palette, Check } from "lucide-react";
+import { AlertCircle, BellOff, CheckCircle2, Clock, BookMarked, Palette, Check, StickyNote, Download, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
-import { useListAssignments } from "@workspace/api-client-react";
+import { useListAssignments, useListEvents } from "@workspace/api-client-react";
 import { format, parseISO } from "date-fns";
 import { useEffect, useState } from "react";
 
@@ -16,9 +16,20 @@ const pastelPalettes = [
   { id: "lavender", name: "Lavender", swatch: "#D5C3F0", background: "263 55% 93%", sidebar: "263 45% 87%", primary: "263 48% 58%", secondary: "263 38% 86%", accent: "263 45% 83%", border: "263 28% 81%" },
 ] as const;
 
+const verses = [
+  { text: "Whatever you do, work at it with all your heart.", reference: "Colossians 3:23" },
+  { text: "Let all that you do be done in love.", reference: "1 Corinthians 16:14" },
+  { text: "Commit to the Lord whatever you do, and your plans will succeed.", reference: "Proverbs 16:3" },
+  { text: "I can do all things through Christ who strengthens me.", reference: "Philippians 4:13" },
+  { text: "The Lord gives wisdom; from his mouth come knowledge and understanding.", reference: "Proverbs 2:6" },
+  { text: "Be strong and courageous. Do not be afraid; do not be discouraged.", reference: "Joshua 1:9" },
+  { text: "Let us not become weary in doing good.", reference: "Galatians 6:9" },
+] as const;
+
 export function Dashboard() {
   const { permission, requestPermission, dueSoon } = useNotifications();
   const { data: assignments } = useListAssignments();
+  const { data: events } = useListEvents();
   const [paletteId, setPaletteId] = useState(() => localStorage.getItem("studyhub-palette") || "rose");
 
   useEffect(() => {
@@ -41,11 +52,75 @@ export function Dashboard() {
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 4) || [];
 
+  const today = new Date();
+  const dayNumber = Math.floor(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) / 86400000);
+  const verse = verses[Math.abs(dayNumber) % verses.length];
+
+  const downloadData = () => {
+    const savedBrowserData: Record<string, unknown> = {};
+    Object.keys(localStorage).forEach((key) => {
+      const value = localStorage.getItem(key);
+      if (value === null) return;
+      try {
+        savedBrowserData[key] = JSON.parse(value);
+      } catch {
+        savedBrowserData[key] = value;
+      }
+    });
+
+    const exportFile = {
+      exportedAt: new Date().toISOString(),
+      assignments: assignments ?? [],
+      calendarEvents: events ?? [],
+      savedBrowserData,
+    };
+    const blob = new Blob([JSON.stringify(exportFile, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `study-hub-data-${today.toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-8">
+        <section className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/70 px-6 py-8 shadow-sm md:px-10 md:py-10">
+          <div className="relative z-10 max-w-2xl">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.28em] text-primary">Your little place to learn</p>
+            <h1 className="font-script text-7xl leading-none text-foreground md:text-8xl">Study Hub</h1>
+            <p className="mt-4 max-w-md text-sm leading-6 text-muted-foreground">
+              Keep your classes, thoughts, deadlines, and quiet focus time close by.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/sticky-board">
+                <Button className="gap-2 rounded-xl bg-primary text-white shadow-sm hover:bg-primary/90" data-testid="button-open-board">
+                  <StickyNote className="h-4 w-4" />
+                  Open Board
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={downloadData}
+                className="gap-2 rounded-xl border-border bg-white/70 shadow-sm"
+                data-testid="button-download-data"
+              >
+                <Download className="h-4 w-4" />
+                Download my data
+              </Button>
+            </div>
+          </div>
+          <div className="pointer-events-none absolute -right-8 -top-14 h-56 w-56 rounded-full bg-secondary/80 blur-[1px]" />
+          <div className="pointer-events-none absolute -bottom-20 right-28 h-44 w-44 rounded-full bg-accent/80" />
+        </section>
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h1 className="font-script text-5xl text-foreground">Dashboard</h1>
+          <h2 className="font-script text-5xl text-foreground">Dashboard</h2>
           {permission !== "granted" && typeof Notification !== "undefined" && (
             <Button
               onClick={requestPermission}
@@ -88,6 +163,17 @@ export function Dashboard() {
                 </button>
               );
             })}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-primary/15 bg-white/60 p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary">Verse of the day</p>
+              <p className="max-w-2xl font-script text-3xl leading-tight text-foreground">“{verse.text}”</p>
+              <p className="mt-2 text-sm font-medium text-muted-foreground">{verse.reference}</p>
+            </div>
+            <div className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-primary">A new verse each day</div>
           </div>
         </section>
 
