@@ -9,6 +9,12 @@ import {
   Moon,
   Sun,
   ChevronRight,
+  Timer,
+  School,
+  StickyNote,
+  PenLine,
+  GraduationCap,
+  Link2,
 } from "lucide-react";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -20,10 +26,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     localStorage.setItem("theme", dark ? "dark" : "light");
   }, [dark]);
 
+  useEffect(() => {
+    const palettes: Record<string, Record<string, string>> = {
+      rose: { background: "348 60% 92%", sidebar: "348 52% 87%", primary: "340 52% 58%", secondary: "348 45% 86%", accent: "348 50% 84%", border: "348 30% 84%" },
+      peach: { background: "22 75% 93%", sidebar: "22 65% 87%", primary: "15 70% 60%", secondary: "22 60% 86%", accent: "22 65% 84%", border: "22 38% 83%" },
+      lemon: { background: "48 70% 92%", sidebar: "48 62% 86%", primary: "42 65% 48%", secondary: "48 55% 85%", accent: "48 65% 82%", border: "48 38% 81%" },
+      mint: { background: "154 45% 92%", sidebar: "154 42% 85%", primary: "154 42% 43%", secondary: "154 35% 84%", accent: "154 40% 81%", border: "154 28% 79%" },
+      sky: { background: "202 65% 93%", sidebar: "202 55% 87%", primary: "202 55% 52%", secondary: "202 45% 85%", accent: "202 55% 82%", border: "202 30% 80%" },
+      lavender: { background: "263 55% 93%", sidebar: "263 45% 87%", primary: "263 48% 58%", secondary: "263 38% 86%", accent: "263 45% 83%", border: "263 28% 81%" },
+    };
+    const palette = palettes[localStorage.getItem("studyhub-palette") || "rose"] ?? palettes.rose;
+    Object.entries(palette).forEach(([name, value]) => document.documentElement.style.setProperty(`--${name}`, value));
+  }, []);
+
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/calendar", label: "Calendar", icon: CalendarDays },
     { href: "/assignments", label: "Assignments", icon: ClipboardList },
+    { href: "/timer", label: "Study Timer", icon: Timer },
+    { href: "/classes", label: "Classes", icon: School },
+    { href: "/sticky-board", label: "Sticky Board", icon: StickyNote },
+    { href: "/write", label: "Write Mode", icon: PenLine },
+    { href: "/teachers", label: "Teachers", icon: GraduationCap },
+    { href: "/resources", label: "Resources", icon: Link2 },
   ];
 
   return (
