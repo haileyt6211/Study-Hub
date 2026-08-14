@@ -1,3 +1,4 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="180" height="180" rx="36" fill="#FF3C00"/>
+  <rect width="180" height="180" rx="38" fill="#F7B4C8"/>
+  <text x="90" y="125" text-anchor="middle" fill="#171217" font-family="Brush Script MT, Segoe Script, cursive" font-size="118" font-style="italic" font-weight="700">S</text>
 </svg>
