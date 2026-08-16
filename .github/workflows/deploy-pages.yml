@@ -1,37 +1,57 @@
-name: Build and deploy to GitHub Pages on: push: branches: - main workflow_dispatch:
+name: Build and deploy to GitHub Pages
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
-permissions: contents: read pages: write id-token: write
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
-jobs: build_and_deploy: runs-on: ubuntu-latest steps: - name: Checkout uses: actions/checkout@v4
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  - name: Setup Node
-    uses: actions/setup-node@v4
-    with:
-      node-version: 18
-      cache: 'pnpm'
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
 
-  - name: Enable Corepack and install pnpm
-    run: |
-      corepack enable
-      corepack prepare pnpm@latest --activate
+      - name: Enable Corepack and install pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
 
-  - name: Install dependencies
-    run: pnpm install
+      - name: Install dependencies
+        run: pnpm install
 
-  - name: Build
-run: pnpm run build
-  - name: Determine publish directory
-    id: set-dir
-    run: |
-      if [ -d "./dist" ]; then echo "publish_dir=dist" >> $GITHUB_OUTPUT
-      elif [ -d "./build" ]; then echo "publish_dir=build" >> $GITHUB_OUTPUT
-      else echo "publish_dir=." >> $GITHUB_OUTPUT
-    shell: bash
+      - name: Build
+        run: pnpm -w run build
 
-  - name: Upload Pages artifact
-    uses: actions/upload-pages-artifact@v1
-    with:
-      path: ${{ steps.set-dir.outputs.publish_dir }}
+      - name: Determine publish directory
+        id: set-dir
+        run: |
+          if [ -d "./artifacts/study-companion/dist" ]; then
+            echo "publish_dir=artifacts/study-companion/dist" >> $GITHUB_OUTPUT
+          elif [ -d "./dist" ]; then
+            echo "publish_dir=dist" >> $GITHUB_OUTPUT
+          elif [ -d "./build" ]; then
+            echo "publish_dir=build" >> $GITHUB_OUTPUT
+          else
+            echo "publish_dir=." >> $GITHUB_OUTPUT
+          fi
+        shell: bash
 
-  - name: Deploy to GitHub Pages
-    uses: actions/deploy-pages@v1
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ${{ steps.set-dir.outputs.publish_dir }}
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v1
